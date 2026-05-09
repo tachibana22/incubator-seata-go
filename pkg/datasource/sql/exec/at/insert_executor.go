@@ -25,7 +25,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/arana-db/parser/ast"
+	"github.com/pingcap/tidb/pkg/parser/ast"
 
 	"seata.apache.org/seata-go/v2/pkg/datasource/sql/datasource"
 	"seata.apache.org/seata-go/v2/pkg/datasource/sql/exec"

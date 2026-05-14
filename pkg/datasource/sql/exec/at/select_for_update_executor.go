@@ -46,7 +46,7 @@ import (
 )
 
 var (
-	lockConflictError = errors.New("lock conflict error")
+	errLockConflict = errors.New("lock conflict error")
 )
 
 type selectForUpdateExecutor struct {
@@ -118,7 +118,7 @@ func (s *selectForUpdateExecutor) ExecContext(ctx context.Context, f exec.Callba
 	for bf.Ongoing() {
 		log.Infof("calling doExecContext")
 		result, err = s.doExecContext(ctx, f)
-		if err == nil || errors.Is(err, lockConflictError) {
+		if err == nil || errors.Is(err, errLockConflict) {
 			break
 		}
 		bf.Wait()
@@ -227,7 +227,7 @@ func (s *selectForUpdateExecutor) doExecContext(ctx context.Context, f exec.Call
 	}
 
 	if !lockable {
-		return nil, lockConflictError
+		return nil, errLockConflict
 	}
 
 	return result, nil

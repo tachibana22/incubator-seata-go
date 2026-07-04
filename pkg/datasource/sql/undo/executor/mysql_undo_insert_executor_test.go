@@ -375,3 +375,58 @@ func TestMySQLUndoInsertExecutor_ExecuteOn(t *testing.T) {
 		})
 	}
 }
+func TestMySQLUndoInsertExecutor_BuildUndoSQL_CompositePK(t *testing.T) {
+	afterImage := &types.RecordImage{
+		TableName: "test_table",
+		TableMeta: &types.TableMeta{
+			TableName: "test_table",
+			Columns: map[string]types.ColumnMeta{
+				"tenant_id": {ColumnName: "tenant_id"},
+				"id":        {ColumnName: "id"},
+			},
+			Indexs: map[string]types.IndexMeta{
+				"PRIMARY": {
+					IType: types.IndexTypePrimaryKey,
+					Columns: []types.ColumnMeta{
+						{ColumnName: "tenant_id"},
+						{ColumnName: "id"},
+					},
+				},
+			},
+		},
+		Rows: []types.RowImage{
+			{
+				Columns: []types.ColumnImage{
+					{ColumnName: "tenant_id", KeyType: types.IndexTypePrimaryKey, Value: "tenant_1"},
+					{ColumnName: "id", KeyType: types.IndexTypePrimaryKey, Value: 100},
+				},
+			},
+		},
+	}
+
+	sqlUndoLog := undo.SQLUndoLog{
+		TableName:  "test_table",
+		AfterImage: afterImage,
+	}
+
+	patches := gomonkey.ApplyFunc(util.GetOrderedPkList, func(image *types.RecordImage, row types.RowImage, dbType types.DBType) ([]types.ColumnImage, error) {
+		return []types.ColumnImage{
+			{ColumnName: "tenant_id", Value: "tenant_1"},
+			{ColumnName: "id", Value: 100},
+		}, nil
+	})
+	defer patches.Reset()
+
+	patches.ApplyFunc(util.BuildWhereConditionByPKs, func(pkNameList []string, dbType types.DBType) string {
+		return "`" + pkNameList[0] + "` = ? AND `" + pkNameList[1] + "` = ?"
+	})
+
+	executor := &mySQLUndoInsertExecutor{
+		sqlUndoLog: sqlUndoLog,
+	}
+
+	gotSQL, err := executor.buildUndoSQL(types.DBTypeMySQL)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "DELETE FROM test_table WHERE `tenant_id` = ? AND `id` = ? ", gotSQL)
+}

@@ -72,21 +72,23 @@ func rowListToMap(rows []types.RowImage, primaryKeyList []string) map[string]map
 	for _, row := range rows {
 		fieldMap := make(map[string]interface{}, 0)
 		var rowKey string
-		var firstUnderline bool
+		pkValues := make(map[string]interface{})
 
 		for _, column := range row.Columns {
 			cleanName := util.DelEscape(column.ColumnName, types.DBTypeMySQL)
-			for i, key := range primaryKeyList {
+			for _, key := range primaryKeyList {
 				if cleanName == key {
-					if firstUnderline && i > 0 {
-						rowKey += "_##$$_"
-					}
-					// todo make value more accurate
-					rowKey = fmt.Sprintf("%v%v", rowKey, column.GetActualValue())
-					firstUnderline = true
+					pkValues[key] = column.GetActualValue()
 				}
 			}
 			fieldMap[strings.ToUpper(cleanName)] = column.Value
+		}
+
+		for i, key := range primaryKeyList {
+			if i > 0 {
+				rowKey += "_##$$_"
+			}
+			rowKey = fmt.Sprintf("%v%v", rowKey, pkValues[key])
 		}
 		rowMap[rowKey] = fieldMap
 	}

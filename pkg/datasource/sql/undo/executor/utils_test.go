@@ -569,3 +569,51 @@ func TestBuildPKParams_EscapedColumnNames(t *testing.T) {
 	assert.Len(t, result, 2)
 	assert.Equal(t, []interface{}{1, 2}, result)
 }
+
+func TestRowListToMap_CompositePK_ColumnOrderIndependent(t *testing.T) {
+	primaryKeyList := []string{"tenant_id", "id"}
+
+	tests := []struct {
+		name string
+		rows []types.RowImage
+		want map[string]bool
+	}{
+		{
+			name: "physical columns order: tenant_id then id",
+			rows: []types.RowImage{
+				{
+					Columns: []types.ColumnImage{
+						{ColumnName: "tenant_id", Value: "tenant123"},
+						{ColumnName: "id", Value: 456},
+						{ColumnName: "name", Value: "test_a"},
+					},
+				},
+			},
+			want: map[string]bool{"tenant123_##$$_456": true},
+		},
+		{
+			name: "physical columns order: id then tenant_id (shuffled)",
+			rows: []types.RowImage{
+				{
+					Columns: []types.ColumnImage{
+						{ColumnName: "id", Value: 456},
+						{ColumnName: "name", Value: "test_b"},
+						{ColumnName: "tenant_id", Value: "tenant123"},
+					},
+				},
+			},
+			want: map[string]bool{"tenant123_##$$_456": true},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotMap := rowListToMap(tt.rows, primaryKeyList)
+
+			assert.Len(t, gotMap, 1)
+			for gotKey := range gotMap {
+				assert.True(t, tt.want[gotKey], "generated rowKey %s not matching expected order", gotKey)
+			}
+		})
+	}
+}

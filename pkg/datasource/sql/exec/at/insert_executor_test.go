@@ -1118,6 +1118,38 @@ func TestMySQLInsertUndoLogBuilder_autoGeneratePks(t *testing.T) {
 	}
 }
 
+func TestCanAutoGeneratePKs_CompositePK(t *testing.T) {
+	tests := []struct {
+		name      string
+		pkMetaMap map[string]types.ColumnMeta
+		want      bool
+	}{
+		{
+			name: "composite primary key with one autoincrement column",
+			pkMetaMap: map[string]types.ColumnMeta{
+				"tenant_id": {ColumnName: "tenant_id", Autoincrement: false},
+				"id":        {ColumnName: "id", Autoincrement: true},
+			},
+			want: true,
+		},
+		{
+			name: "composite primary key without any autoincrement column",
+			pkMetaMap: map[string]types.ColumnMeta{
+				"group_id": {ColumnName: "group_id", Autoincrement: false},
+				"user_id":  {ColumnName: "user_id", Autoincrement: false},
+			},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := canAutoGeneratePKs(tt.pkMetaMap)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 type autoIncrementStepConn struct {
 	value driver.Value
 }

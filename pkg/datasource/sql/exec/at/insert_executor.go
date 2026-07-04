@@ -349,18 +349,18 @@ func (i *insertExecutor) buildAfterImageSQL(ctx context.Context) (string, []driv
 
 	rowSize := len(pkValuesMap[pkColumnNameList[0]])
 	for i := 0; i < rowSize; i++ {
+		var columns []types.ColumnImage
 		for _, name := range pkColumnNameList {
 			tmpKey := name
 			tmpArray := pkValuesMap[tmpKey]
-			pkRowImages = append(pkRowImages, types.RowImage{
-				Columns: []types.ColumnImage{{
-					KeyType:    types.IndexTypePrimaryKey,
-					ColumnName: tmpKey,
-					ColumnType: jdbcTypeForDatabaseType(dbType, dataTypeMap[tmpKey]),
-					Value:      tmpArray[i],
-				}},
+			columns = append(columns, types.ColumnImage{
+				KeyType:    types.IndexTypePrimaryKey,
+				ColumnName: tmpKey,
+				ColumnType: jdbcTypeForDatabaseType(dbType, dataTypeMap[tmpKey]),
+				Value:      tmpArray[i],
 			})
 		}
+		pkRowImages = append(pkRowImages, types.RowImage{Columns: columns})
 	}
 	// build check sql
 	sb := strings.Builder{}

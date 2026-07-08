@@ -110,13 +110,12 @@ func (g *grpcClientHandler) monitorStreamHealth(ctx context.Context, channel *Ch
 							return
 						}
 
-						flag = true
+					flag = true
 
-					}
 				}
-			} else {
-				heartBeatRetryTimes = 0
 			}
+		} else {
+			heartBeatRetryTimes = 0
 		}
 	}
 }

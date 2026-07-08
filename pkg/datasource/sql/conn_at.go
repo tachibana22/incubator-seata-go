@@ -158,7 +158,7 @@ func (c *ATConn) QueryContext(ctx context.Context, query string, args []driver.N
 
 				// If skip fast-path error, fallback to prepared statement
 				if strings.Contains(err.Error(), "skip fast-path") {
-					stmt, prepErr := c.Conn.Prepare(query)
+					stmt, prepErr := c.Prepare(query)
 					if prepErr != nil {
 						return nil, prepErr
 					}

@@ -314,3 +314,25 @@ func TestGetOrderedPkListEmptyRow(t *testing.T) {
 	assert.NotNil(t, result)
 	assert.Len(t, result, 0)
 }
+
+func TestGetOrderedPkListNilGuards(t *testing.T) {
+	row := types.RowImage{
+		Columns: []types.ColumnImage{
+			{ColumnName: "id", Value: 1, KeyType: types.IndexTypePrimaryKey},
+		},
+	}
+
+	result, err := GetOrderedPkList(nil, row, types.DBTypeMySQL)
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "invalid record image")
+
+	imageWithNilMeta := &types.RecordImage{
+		TableName: "t_user",
+		TableMeta: nil,
+	}
+	result, err = GetOrderedPkList(imageWithNilMeta, row, types.DBTypeMySQL)
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "table meta is nil")
+}

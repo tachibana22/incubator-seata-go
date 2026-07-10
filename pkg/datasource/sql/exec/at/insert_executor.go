@@ -345,11 +345,11 @@ func (i *insertExecutor) buildAfterImageSQL(ctx context.Context) (string, []driv
 	if len(dataTypeMap) != len(pkColumnNameList) {
 		return "", nil, fmt.Errorf("PK columnName size don't equal PK DataType size")
 	}
-	var pkRowImages []types.RowImage
 
 	rowSize := len(pkValuesMap[pkColumnNameList[0]])
+	pkRowImages := make([]types.RowImage, 0, rowSize)
 	for i := 0; i < rowSize; i++ {
-		var columns []types.ColumnImage
+		columns := make([]types.ColumnImage, 0, len(pkColumnNameList))
 		for _, name := range pkColumnNameList {
 			tmpKey := name
 			tmpArray := pkValuesMap[tmpKey]

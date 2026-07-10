@@ -617,3 +617,23 @@ func TestRowListToMap_CompositePK_ColumnOrderIndependent(t *testing.T) {
 		})
 	}
 }
+
+func TestRowListToMap_SentinelMissingPK(t *testing.T) {
+	primaryKeyList := []string{"tenant_id", "id"}
+	rows := []types.RowImage{
+		{
+			Columns: []types.ColumnImage{
+				{ColumnName: "id", Value: 789},
+				{ColumnName: "name", Value: "test_sentinel"},
+			},
+		},
+	}
+
+	gotMap := rowListToMap(rows, primaryKeyList)
+	assert.Len(t, gotMap, 1)
+
+	for gotKey := range gotMap {
+		assert.Contains(t, gotKey, "__SENTINEL_MISSING_PK_tenant_id_ROW_0__")
+		assert.Contains(t, gotKey, "789")
+	}
+}

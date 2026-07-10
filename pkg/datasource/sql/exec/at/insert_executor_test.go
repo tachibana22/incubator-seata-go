@@ -326,6 +326,29 @@ func TestBuildSelectSQLByInsert(t *testing.T) {
 			expectQuery:      "SELECT id, tenant_id, name FROM user WHERE (`id`,`tenant_id`) IN ((?,?),(?,?)) ",
 			expectQueryArgs:  []driver.Value{int64(19), int64(100), int64(21), int64(101)},
 		},
+		{
+			name:  "test-composite-pk-allocation",
+			query: "insert into user(tenant_id, id, name) values ('tenantA', 100, 'Tony'), ('tenantB', 101, 'Tom')",
+			metaData: types.TableMeta{
+				ColumnNames: []string{"tenant_id", "id", "name"},
+				Indexs: map[string]types.IndexMeta{
+					"PRIMARY": {
+						IType: types.IndexTypePrimaryKey,
+						Columns: []types.ColumnMeta{
+							{ColumnName: "tenant_id", DatabaseType: types.GetSqlDataType("VARCHAR")},
+							{ColumnName: "id", DatabaseType: types.GetSqlDataType("BIGINT")},
+						},
+					},
+				},
+				Columns: map[string]types.ColumnMeta{
+					"tenant_id": {ColumnName: "tenant_id"},
+					"id":        {ColumnName: "id"},
+					"name":      {ColumnName: "name"},
+				},
+			},
+			expectQuery:     "SELECT tenant_id, id, name FROM user WHERE (`tenant_id`,`id`) IN ((?,?),(?,?)) ",
+			expectQueryArgs: []driver.Value{"tenantA", int64(100), "tenantB", int64(101)},
+		},
 	}
 
 	for _, test := range tests {

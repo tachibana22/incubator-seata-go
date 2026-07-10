@@ -20,6 +20,7 @@ package executor
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -305,6 +306,27 @@ func TestMySQLUndoInsertExecutor_ExecuteOn(t *testing.T) {
 			setupMock: func(mock sqlmock.Sqlmock) {
 				mock.ExpectPrepare("DELETE FROM test_table").
 					WillReturnError(assert.AnError)
+			},
+		},
+		{
+			name: "execute with ordered pk list error",
+			afterImage: &types.RecordImage{
+				TableName: "test_table",
+				TableMeta: &types.TableMeta{TableName: "test_table"},
+				Rows: []types.RowImage{
+					{
+						Columns: []types.ColumnImage{
+							{ColumnName: "id", KeyType: types.PrimaryKey.Number(), Value: 1},
+						},
+					},
+				},
+			},
+			expectError: true,
+			setupMock: func(mock sqlmock.Sqlmock) {
+				patches := gomonkey.ApplyFunc(util.GetOrderedPkList, func(image *types.RecordImage, row types.RowImage, dbType types.DBType) ([]types.ColumnImage, error) {
+					return nil, fmt.Errorf("mock ordered pk error")
+				})
+				t.Cleanup(func() { patches.Reset() })
 			},
 		},
 	}

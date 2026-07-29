@@ -71,7 +71,6 @@ func rowListToMap(rows []types.RowImage, primaryKeyList []string) map[string]map
 	rowMap := make(map[string]map[string]interface{}, len(rows))
 	for rowIndex, row := range rows {
 		fieldMap := make(map[string]interface{}, len(row.Columns))
-		var rowKey string
 		pkValues := make(map[string]interface{}, len(primaryKeyList))
 
 		for _, column := range row.Columns {
@@ -84,18 +83,21 @@ func rowListToMap(rows []types.RowImage, primaryKeyList []string) map[string]map
 			fieldMap[strings.ToUpper(cleanName)] = column.Value
 		}
 
+		var sb strings.Builder
 		for i, key := range primaryKeyList {
 			if i > 0 {
-				rowKey += "_##$$_"
+				sb.WriteString(",")
 			}
 			val, ok := pkValues[key]
+			var valStr string
 			if !ok || val == nil {
-				rowKey += fmt.Sprintf("__SENTINEL_MISSING_PK_%s_ROW_%d__", key, rowIndex)
+				valStr = fmt.Sprintf("__SENTINEL_MISSING_PK_%s_ROW_%d__", key, rowIndex)
 			} else {
-				rowKey += fmt.Sprintf("%v", val)
+				valStr = fmt.Sprintf("%v", val)
 			}
+			sb.WriteString(fmt.Sprintf("%d:%s", len(valStr), valStr))
 		}
-		rowMap[rowKey] = fieldMap
+		rowMap[sb.String()] = fieldMap
 	}
 	return rowMap
 }

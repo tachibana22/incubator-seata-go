@@ -339,7 +339,7 @@ func TestGetOrderedPkListNilGuards(t *testing.T) {
 
 func TestGetOrderedPkListCompositePK_ShuffledInput(t *testing.T) {
 	tableMeta := types.TableMeta{
-		TableName: "t_order",
+		TableName:   "t_order",
 		ColumnNames: []string{"tenant_id", "order_id", "user_id"},
 		Indexs: map[string]types.IndexMeta{
 			"PRIMARY": {

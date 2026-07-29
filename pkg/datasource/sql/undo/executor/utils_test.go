@@ -663,8 +663,12 @@ func TestRowListToMap_CollisionPrevention(t *testing.T) {
 	mapB := rowListToMap(rowsB, primaryKeyList)
 
 	var keyA, keyB string
-	for k := range mapA { keyA = k }
-	for k := range mapB { keyB = k }
+	for k := range mapA {
+		keyA = k
+	}
+	for k := range mapB {
+		keyB = k
+	}
 
 	assert.Equal(t, "8:a_##$$_b,1:c", keyA)
 	assert.Equal(t, "1:a,8:b_##$$_c", keyB)

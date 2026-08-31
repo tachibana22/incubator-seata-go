@@ -39,12 +39,12 @@
 
 ### breaking change:
 
-  - Bump minimum Go version from 1.20 to 1.25 (required by upstream `github.com/pingcap/tidb/pkg/parser`). All downstream users must upgrade to Go 1.25+.
+  - [[#1104](https://github.com/apache/incubator-seata-go/issues/1104)] Bump minimum Go version from 1.20 to 1.25 (required by upstream `github.com/pingcap/tidb/pkg/parser`). All downstream users must upgrade to Go 1.25+.
 
 ### optimize：
 
   - [[#125](https://github.com/apache/incubator-seata-go/pull/125)] optimize named for the resource manager api and tcc resource
-  - Replace `github.com/arana-db/parser` with upstream `github.com/pingcap/tidb/pkg/parser` to avoid depending on a possibly-stale fork
+ - [[#1104](https://github.com/apache/incubator-seata-go/issues/1104)] Replace `github.com/arana-db/parser` with upstream `github.com/pingcap/tidb/pkg/parser` to avoid depending on a possibly-stale fork
 
 ### test:
 

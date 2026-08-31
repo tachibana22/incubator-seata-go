@@ -23,7 +23,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/agiledragon/gomonkey/v2"
+	"github.com/golang/mock/gomock"
 	"github.com/pingcap/tidb/pkg/parser/ast"
 	"github.com/pingcap/tidb/pkg/parser/model"
 	"github.com/pingcap/tidb/pkg/parser/test_driver"

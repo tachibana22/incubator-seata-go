@@ -29,8 +29,8 @@ import (
 	gxsort "github.com/dubbogo/gost/sort"
 	"github.com/pingcap/tidb/pkg/parser/ast"
 	"github.com/pingcap/tidb/pkg/parser/model"
-	"github.com/pingcap/tidb/pkg/parser/test_driver"
 	"github.com/pkg/errors"
+	"seata.apache.org/seata-go/v2/pkg/datasource/sql/parser"
 
 	"seata.apache.org/seata-go/v2/pkg/datasource/sql/datasource"
 	"seata.apache.org/seata-go/v2/pkg/datasource/sql/exec"
@@ -272,8 +272,10 @@ func (b *baseExecutor) traversalArgs(node ast.Node, argsIndex *[]int32) {
 		if expr.ElseClause != nil {
 			b.traversalArgs(expr.ElseClause, argsIndex)
 		}
-	case *test_driver.ParamMarkerExpr:
-		*argsIndex = append(*argsIndex, int32(expr.Order))
+	case ast.ParamMarkerExpr:
+		if order, ok := parser.GetParamMarkerOrder(expr); ok {
+			*argsIndex = append(*argsIndex, int32(order))
+		}
 	}
 }
 
@@ -367,7 +369,7 @@ func buildImageSelectColumns(meta *types.TableMeta, requested []string, dbType t
 	return result, nil
 }
 
-func (u *baseExecutor) buildSelectFields(ctx context.Context, tableMeta *types.TableMeta, tableAliases string, inUseFields []*ast.Assignment) ([]*ast.SelectField, error) {
+func (u *baseExecutor) buildSelectFields(_ context.Context, tableMeta *types.TableMeta, tableAliases string, inUseFields []*ast.Assignment) ([]*ast.SelectField, error) {
 	fields := make([]*ast.SelectField, 0, len(inUseFields))
 
 	tableName := tableAliases

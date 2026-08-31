@@ -306,3 +306,14 @@ func (m mockRows) Next(dest []driver.Value) error {
 
 	return nil
 }
+
+func TestBuildLockKey_EmptyPrimaryKey(t *testing.T) {
+	e := selectForUpdateExecutor{}
+	metaData := types.TableMeta{
+		TableName: "t_user",
+		Indexs:    map[string]types.IndexMeta{},
+	}
+	rows := mockRows{}
+	lockKey := e.buildLockKey(rows, &metaData)
+	assert.Equal(t, "", lockKey)
+}

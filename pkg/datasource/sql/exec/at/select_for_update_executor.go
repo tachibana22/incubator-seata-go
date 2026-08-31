@@ -18,13 +18,11 @@
 package at
 
 import (
-	"bytes"
 	"context"
 	"database/sql/driver"
 	"errors"
 	"fmt"
 	"io"
-	"reflect"
 	"strings"
 	"time"
 
@@ -43,6 +41,7 @@ import (
 	"seata.apache.org/seata-go/v2/pkg/util/backoff"
 	seatabytes "seata.apache.org/seata-go/v2/pkg/util/bytes"
 	"seata.apache.org/seata-go/v2/pkg/util/log"
+	"seata.apache.org/seata-go/v2/pkg/util/reflectx"
 )
 
 var (
@@ -282,7 +281,7 @@ func (s *selectForUpdateExecutor) buildSelectPKSQL(stmt *ast.SelectStmt, meta *t
 // the string as local key. the local key example(multi pk): "t_user:1_a,2_b"
 func (s *selectForUpdateExecutor) buildLockKey(rows driver.Rows, meta *types.TableMeta) string {
 	var (
-		lockKeys    bytes.Buffer
+		lockKeys    strings.Builder
 		idx         int
 		columnNames []string
 	)
@@ -290,6 +289,9 @@ func (s *selectForUpdateExecutor) buildLockKey(rows driver.Rows, meta *types.Tab
 	lockKeys.WriteString(":")
 
 	columnNames = meta.GetPrimaryKeyOnlyName()
+	if len(columnNames) == 0 {
+		return ""
+	}
 	sqlRows := util.NewScanRows(rows)
 	for sqlRows.Next() {
 		ss := s.GetScanSlice(columnNames, meta)
@@ -309,19 +311,10 @@ func (s *selectForUpdateExecutor) buildLockKey(rows driver.Rows, meta *types.Tab
 			if i > 0 {
 				lockKeys.WriteString("_")
 			}
-
-			// if the value is NullInt64 or NullString etc. then call its Value()
-			ty := reflect.TypeOf(value)
-			if f, ok := ty.MethodByName("Value"); ok {
-				res := f.Func.Call([]reflect.Value{reflect.ValueOf(value)})
-				if res[1].IsNil() { // res[0]: driver.Value, [1]: error
-					lockKeys.WriteString(res[0].Elem().String())
-				}
-				continue
+			actualVal := getSqlNullValue(reflectx.GetElemDataValue(value))
+			if actualVal != nil {
+				fmt.Fprintf(&lockKeys, "%v", actualVal)
 			}
-
-			// if the value type is *int64, *string etc. then get the true value
-			fmt.Fprintf(&lockKeys, "%v", reflect.ValueOf(value).Elem())
 		}
 	}
 	return lockKeys.String()

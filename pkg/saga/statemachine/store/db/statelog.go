@@ -861,6 +861,7 @@ func (s *StateLogStore) branchReport(ctx context.Context, stateInstance statelan
 			perr,
 		)
 	}
+	//nolint:staticcheck
 	if mgr := rm.GetRmCacheInstance().GetResourceManager(branch.BranchTypeSAGA); mgr != nil {
 		log.Infof("BranchReport via SagaResourceManager, XID=%s, branchId=%d, status=%s", globalTransaction.Xid, branchId, branchStatus)
 		if err = mgr.BranchReport(ctx, rm.BranchReportParam{

@@ -256,8 +256,8 @@ func TestBasicUndoLogBuilder_BuildSelectArgs_ComplexAST(t *testing.T) {
 			expected: []driver.Value{1, 10, 20},
 		},
 		{
-			name:     "Subquery and Exists",
-			sql:      "SELECT * FROM t WHERE id IN (SELECT id FROM t2 WHERE x = ?) AND EXISTS (SELECT 1 FROM t3 WHERE y = ?)",
+			name:     "Parentheses and Unary",
+			sql:      "SELECT * FROM t WHERE NOT (a = ?) AND (b = ?)",
 			args:     []driver.Value{1, 2},
 			expected: []driver.Value{1, 2},
 		},

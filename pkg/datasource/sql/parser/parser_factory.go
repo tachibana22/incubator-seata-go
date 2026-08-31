@@ -18,11 +18,13 @@
 package parser
 
 import (
+	"reflect"
 	"sort"
 
 	aparser "github.com/pingcap/tidb/pkg/parser"
 	"github.com/pingcap/tidb/pkg/parser/ast"
-	"github.com/pingcap/tidb/pkg/parser/test_driver"
+	// Import test_driver to register the parser driver required by TiDB parser to instantiate ParamMarkerExpr.
+	_ "github.com/pingcap/tidb/pkg/parser/test_driver"
 
 	"seata.apache.org/seata-go/v2/pkg/datasource/sql/types"
 )
@@ -53,15 +55,37 @@ func DoParser(query string) (*types.ParseContext, error) {
 	return &parserCtx, nil
 }
 
+type markerOffset struct {
+	marker ast.ParamMarkerExpr
+	offset int
+}
+
 type paramMarkerOrderVisitor struct {
-	markers []*test_driver.ParamMarkerExpr
+	markers []markerOffset
 }
 
 func (v *paramMarkerOrderVisitor) Enter(node ast.Node) (ast.Node, bool) {
-	if marker, ok := node.(*test_driver.ParamMarkerExpr); ok {
-		v.markers = append(v.markers, marker)
+	if marker, ok := node.(ast.ParamMarkerExpr); ok {
+		offset := getParamMarkerOffset(node)
+		v.markers = append(v.markers, markerOffset{marker: marker, offset: offset})
 	}
 	return node, false
+}
+
+func getParamMarkerOffset(node ast.Node) int {
+	if getter, ok := node.(interface{ GetOffset() int }); ok {
+		return getter.GetOffset()
+	}
+	val := reflect.ValueOf(node)
+	if val.Kind() == reflect.Pointer {
+		val = val.Elem()
+	}
+	if val.IsValid() && val.Kind() == reflect.Struct {
+		if field := val.FieldByName("Offset"); field.IsValid() && field.CanInt() {
+			return int(field.Int())
+		}
+	}
+	return node.OriginTextPosition()
 }
 
 func (v *paramMarkerOrderVisitor) Leave(node ast.Node) (ast.Node, bool) {
@@ -69,17 +93,37 @@ func (v *paramMarkerOrderVisitor) Leave(node ast.Node) (ast.Node, bool) {
 }
 
 func assignParamMarkerOrders(stmtNodes []ast.StmtNode) {
-	visitor := &paramMarkerOrderVisitor{}
+	visitor := &paramMarkerOrderVisitor{
+		markers: make([]markerOffset, 0, len(stmtNodes)*4),
+	}
 	for _, node := range stmtNodes {
 		node.Accept(visitor)
 	}
 
-	sort.Slice(visitor.markers, func(i, j int) bool {
-		return visitor.markers[i].Offset < visitor.markers[j].Offset
+	sort.SliceStable(visitor.markers, func(i, j int) bool {
+		return visitor.markers[i].offset < visitor.markers[j].offset
 	})
-	for i, marker := range visitor.markers {
-		marker.SetOrder(i)
+	for i, item := range visitor.markers {
+		item.marker.SetOrder(i)
 	}
+}
+
+func GetParamMarkerOrder(node ast.Node) (int, bool) {
+	if marker, ok := node.(ast.ParamMarkerExpr); ok {
+		if getter, ok := marker.(interface{ GetOrder() int }); ok {
+			return getter.GetOrder(), true
+		}
+		val := reflect.ValueOf(marker)
+		if val.Kind() == reflect.Pointer {
+			val = val.Elem()
+		}
+		if val.IsValid() && val.Kind() == reflect.Struct {
+			if field := val.FieldByName("Order"); field.IsValid() && field.CanInt() {
+				return int(field.Int()), true
+			}
+		}
+	}
+	return 0, false
 }
 
 func parseParseContext(stmtNode ast.StmtNode) *types.ParseContext {

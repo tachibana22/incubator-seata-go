@@ -129,12 +129,13 @@ func assertParamMarkerOrders(t *testing.T, stmtNodes []ast.StmtNode, expected []
 		node.Accept(visitor)
 	}
 	sort.Slice(visitor.markers, func(i, j int) bool {
-		return visitor.markers[i].Offset < visitor.markers[j].Offset
+		return visitor.markers[i].offset < visitor.markers[j].offset
 	})
 
 	orders := make([]int, 0, len(visitor.markers))
-	for _, marker := range visitor.markers {
-		orders = append(orders, marker.Order)
+	for _, item := range visitor.markers {
+		order, _ := GetParamMarkerOrder(item.marker)
+		orders = append(orders, order)
 	}
 	assert.Equal(t, expected, orders)
 }
@@ -216,4 +217,44 @@ func TestAssignParamMarkerOrdersComplex(t *testing.T) {
 			assertParamMarkerOrders(t, stmtNodes, tt.expected)
 		})
 	}
+}
+
+func TestAssignParamMarkerOrders_EquivalenceMatrix(t *testing.T) {
+	tests := []struct {
+		name     string
+		sql      string
+		expected []int
+	}{
+		{
+			name:     "Case When Expression",
+			sql:      "SELECT CASE WHEN a = ? THEN ? ELSE ? END FROM t WHERE id = ?",
+			expected: []int{0, 1, 2, 3},
+		},
+		{
+			name:     "Join with multi subqueries and parameters",
+			sql:      "SELECT * FROM (SELECT id, val FROM t1 WHERE a = ?) t1 JOIN (SELECT id FROM t2 WHERE b IN (?, ?)) t2 ON t1.id = t2.id WHERE t1.val > ?",
+			expected: []int{0, 1, 2, 3},
+		},
+		{
+			name:     "Insert On Duplicate Update with Param Marker Values",
+			sql:      "INSERT INTO t (id, name, age) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE age = age + ?, name = ?",
+			expected: []int{0, 1, 2, 3, 4},
+		},
+	}
+
+	p := aparser.New()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			stmtNodes, _, err := p.Parse(tt.sql, "", "")
+			assert.NoError(t, err)
+			assignParamMarkerOrders(stmtNodes)
+			assertParamMarkerOrders(t, stmtNodes, tt.expected)
+		})
+	}
+}
+
+func TestGetParamMarkerOrder_NonMarkerNode(t *testing.T) {
+	order, ok := GetParamMarkerOrder(&ast.TableName{})
+	assert.False(t, ok)
+	assert.Equal(t, 0, order)
 }
